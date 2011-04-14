@@ -40,5 +40,6 @@ BACKUP_FILE_NAME=$database.$DATE.tar.gz
 cd $BACKUP_DIR
 tar cvzf $BACKUP_FILE_NAME $database
 
-
+echo "runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.rb -k access_key_id -s secret_access_key -b bucket -r region -f $BACKUP_FILE_NAME"
+runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.rb -k access_key_id -s secret_access_key -b bucket -r region -f $BACKUP_FILE_NAME
 
