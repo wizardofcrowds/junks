@@ -36,6 +36,7 @@ debug "downloading $url"
 wget                           \
   --retry-connrefused          \
   --tries=20                   \
+  --no-check-certificate       \
   "--output-document=$runfile" \
   "--output-file=$wgetfile"    \
   "$url"
