@@ -37,17 +37,27 @@ puts options.inspect
 
 s3 = RightAws::S3Interface.new(options[:access_key_id], options[:secret_access_key]) #, {:default_protocol => "http", :port => 80})
 
+# preparing destination bucket
 bucket_options = {}
 bucket_options[:location] = options[:dest_region] if options[:dest_region]
 s3.create_bucket(options[:dest_bucket], bucket_options) # to make sure the destination bucket exists
+source_bucket_acl = s3.get_acl(options[:source_bucket]) rescue nil
+if source_bucket_acl
+  s3.put_bucket_acl(options[:dest_bucket], source_bucket_acl[:object]) # copy source ACL to dest ACL
+end
 
+# Finally copying objects in a single thread
 i = 0
 puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: started"
 s3.incrementally_list_bucket(options[:source_bucket]) do |hash|
-  hash[:contents].each do |item| 
-    s3.copy(options[:source_bucket], item[:key], options[:dest_bucket])
-    i += 1
-    puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
+  hash[:contents].each do |item|
+    begin 
+      s3.copy(options[:source_bucket], item[:key], options[:dest_bucket])
+      i += 1
+      puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
+    rescue
+      puts $!.inspect
+    end      
   end
 end
 
