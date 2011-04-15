@@ -2,7 +2,7 @@
 
 usage() { echo "Usage: $CMDNAME -h hostname -P port -d database -u username -p password -k aws_key -s aws_secret -b bucket -r region" 1>&2; }
 
-while getopts h:P:d:u:p: OPT
+while getopts h:P:d:u:p:k:s:b:r: OPT
 do
   case $OPT in
     "h" ) hostname="$OPTARG" ;;
@@ -41,5 +41,7 @@ cd $BACKUP_DIR
 tar cvzf $BACKUP_FILE_NAME $database
 
 echo "runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.rb -k access_key_id -s secret_access_key -b bucket -r region -f $BACKUP_FILE_NAME"
-runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.rb -k access_key_id -s secret_access_key -b bucket -r region -f $BACKUP_FILE_NAME
+runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.rb -k $access_key_id -s $secret_access_key -b $bucket -r $region -f $BACKUP_FILE_NAME
+
+rm $BACKUP_FILE_NAME
 
