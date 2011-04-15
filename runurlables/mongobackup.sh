@@ -25,7 +25,7 @@ echo $username
 echo $password
 
 DATE=`/bin/date '+%Y%m%d%H%M'`
-BACKUP_DIR=/mnt/mongobackup/
+BACKUP_DIR=/mnt/mongobackup/$bucket
 sudo mkdir -p $BACKUP_DIR
 sudo chown ubuntu:ubuntu $BACKUP_DIR
 
