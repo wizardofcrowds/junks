@@ -2,6 +2,9 @@
 
 require 'right_aws'
 require 'optparse'
+require 'logger'
+
+logger = Logger.new(STDOUT)
 
 options = {:bucket => "hogetestbucket", :region => nil}
 # region Valid Values: EU | us-west-1 | ap-southeast-1 | empty string (for the US Classic Region)
@@ -31,6 +34,8 @@ opts = OptionParser.new do |opt|
   opt.parse!(ARGV)
 end
 
+logger.info "ubload2s3 initiated with options: " + options.inspect
+
 s3 = RightAws::S3Interface.new(options[:access_key_id], options[:secret_access_key])
 
 bucket_options = {}
@@ -39,3 +44,4 @@ s3.create_bucket(options[:bucket], bucket_options)
 
 File.open(options[:filepath], 'r'){|f| s3.put(options[:bucket], File.basename(options[:filepath]), f)}
 
+logger.info "ubload2s3 ended with options: " + options.inspect

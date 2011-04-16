@@ -2,8 +2,11 @@
 
 require 'right_aws'
 require 'optparse'
+require 'logger'
 
 THREADS=10
+
+logger = Logger.new(STDOUT)
 
 options = {}
 # region Valid Values: EU | us-west-1 | ap-southeast-1 | US for the US Classic Region
@@ -33,9 +36,9 @@ opts = OptionParser.new do |opt|
   opt.parse!(ARGV)
 end
 
-puts options.inspect
+logger.info "s3bucket2bucket.rb initiated with options: "  + options.inspect
 
-s3 = RightAws::S3Interface.new(options[:access_key_id], options[:secret_access_key]) #, {:default_protocol => "http", :port => 80})
+s3 = RightAws::S3Interface.new(options[:access_key_id], options[:secret_access_key], {:protocol => "http", :port => 80})
 
 # preparing destination bucket
 bucket_options = {}
@@ -48,18 +51,19 @@ end
 
 # Finally copying objects in a single thread
 i = 0
-puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: started"
+logger.info "bucket mgt done. now copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: started"
 s3.incrementally_list_bucket(options[:source_bucket]) do |hash|
   hash[:contents].each do |item|
     begin 
       s3.copy(options[:source_bucket], item[:key], options[:dest_bucket])
+      s3.put_acl(options[:dest_bucket], item[:key], source_bucket_acl[:object]) if source_bucket_acl
       i += 1
-      puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
+      logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
     rescue
-      puts $!.inspect
+      logger.error $!.inspect
     end      
   end
 end
 
-puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended"
-puts "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} completed"
+logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended"
+logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} completed"

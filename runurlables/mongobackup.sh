@@ -18,11 +18,7 @@ do
   esac
 done
 
-echo $hostname
-echo $port
-echo $database
-echo $username
-echo $password
+echo "mongobackup.sh started with host: $hostname port: $port database: $database user: $username password: $password key: $access_key_id secret: $secret_access_key bucket: $bucket region: $region"
 
 DATE=`/bin/date '+%Y%m%d%H%M'`
 BACKUP_DIR=/mnt/mongobackup/$bucket
@@ -37,6 +33,7 @@ echo "/usr/bin/mongodump -h $hostname:$port -d $database -u $username -p$passwor
 
 # e.g. databasename.201104132331.tar.gz
 BACKUP_FILE_NAME=$database.$DATE.tar.gz
+echo "backupfilename: $BACKUP_FILE_NAME"
 cd $BACKUP_DIR
 tar cvzf $BACKUP_FILE_NAME $database
 
@@ -45,3 +42,4 @@ runurl https://github.com/wizardofcrowds/junks/raw/master/runurlables/upload2s3.
 
 rm $BACKUP_FILE_NAME
 
+echo "mongobackup.sh completed with host: $hostname port: $port database: $database user: $username password: $password key: $access_key_id secret: $secret_access_key bucket: $bucket region: $region"
