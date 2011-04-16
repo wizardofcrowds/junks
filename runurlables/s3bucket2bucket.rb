@@ -49,21 +49,50 @@ if source_bucket_acl
   s3.put_bucket_acl(options[:dest_bucket], source_bucket_acl[:object]) # copy source ACL to dest ACL
 end
 
-# Finally copying objects in a single thread
+# # Finally copying objects in a single thread
+# i = 0
+# logger.info "bucket mgt done. now copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: started"
+# s3.incrementally_list_bucket(options[:source_bucket]) do |hash|
+#   hash[:contents].each do |item|
+#     begin 
+#       s3.copy(options[:source_bucket], item[:key], options[:dest_bucket])
+#       s3.put_acl(options[:dest_bucket], item[:key], source_bucket_acl[:object]) if source_bucket_acl
+#       i += 1
+#       logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
+#     rescue
+#       logger.error $!.inspect
+#     end      
+#   end
+# end
+
+# Finally copying objects in THREADS threads
 i = 0
+key_sets = []
 logger.info "bucket mgt done. now copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: started"
 s3.incrementally_list_bucket(options[:source_bucket]) do |hash|
-  hash[:contents].each do |item|
-    begin 
-      s3.copy(options[:source_bucket], item[:key], options[:dest_bucket])
-      s3.put_acl(options[:dest_bucket], item[:key], source_bucket_acl[:object]) if source_bucket_acl
-      i += 1
-      logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended" if i%200 == 0     
-    rescue
-      logger.error $!.inspect
-    end      
+  hash[:contents].each_with_index do |item, i|
+    key_sets[i%THREADS] ||= []
+    key_sets[i%THREADS] << item[:key]
+    logger.debug("#{i}-th item added to cache") if i%500 == 0 && i != 0
   end
 end
 
-logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]}: #{i} files ended"
+threads = []
+key_sets.each_with_index do |key_set, i|
+  threads[i] = Thread.new(i){|thread_id|
+    keys = key_sets[i].flatten    
+    keys.each_with_index do |key, j|
+      begin 
+        s3.copy(options[:source_bucket], key, options[:dest_bucket])
+        s3.put_acl(options[:dest_bucket], key, source_bucket_acl[:object]) if source_bucket_acl
+        logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} > Thread #{thread_id} > #{j} files ended" if j%100 == 0     
+      rescue
+        logger.error $!.inspect
+      end      
+    end
+  }
+end
+
+threads.each{|t| t.join }
+
 logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} completed"
