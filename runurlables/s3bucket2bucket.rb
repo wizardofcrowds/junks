@@ -82,12 +82,24 @@ key_sets.each_with_index do |key_set, i|
   threads[i] = Thread.new(i){|thread_id|
     keys = key_sets[i].flatten    
     keys.each_with_index do |key, j|
-      begin 
+      retry_count = 0
+      begin
+        retry_count += 1
         s3.copy(options[:source_bucket], key, options[:dest_bucket])
         s3.put_acl(options[:dest_bucket], key, source_bucket_acl[:object]) if source_bucket_acl
         logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} > Thread #{thread_id} > #{j} files ended" if j%100 == 0     
+      rescue NoMethodError
+        if retry_count < 10
+          logger.warn "exception during processing a key. Retrying after sleeping 1 sec: #{retry_count} key: #{key}"
+          sleep 1
+          retry
+        else
+          logger.error "exception during processing a key. Retried #{retry_count} times. Giving up. key: #{key}"
+          logger.error $!.inspect
+        end
       rescue
-        logger.error $!.inspect
+        logger.error "exception during processing a key: #{key}"
+        logger.error $!.inspect        
       end      
     end
   }
@@ -96,3 +108,5 @@ end
 threads.each{|t| t.join }
 
 logger.info "copy from #{options[:source_bucket]} to #{options[:dest_bucket]} completed"
+
+exit
